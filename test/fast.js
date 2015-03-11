@@ -1,4 +1,5 @@
 require('should')
+var crypto = require('crypto');
 var aws4   = require('../'),
     cred   = { accessKeyId: 'ABCDEF', secretAccessKey: 'abcdef1234567890' },
     date   = 'Wed, 26 Dec 2012 06:10:30 GMT',
@@ -6,6 +7,10 @@ var aws4   = require('../'),
     auth   = 'AWS4-HMAC-SHA256 Credential=ABCDEF/20121226/us-east-1/sqs/aws4_request, ' +
              'SignedHeaders=date;host;x-amz-date, ' +
              'Signature=d847efb54cd60f0a256174848f26e43af4b5168dbec3118dc9fd84e942285791'
+
+function hash(string, encoding) {
+  return crypto.createHash('sha256').update(string, 'utf8').digest(encoding)
+}
 
 describe('aws4', function() {
 
@@ -100,6 +105,14 @@ describe('aws4', function() {
     it('should set Content-Type', function() {
       var opts = aws4.sign({ body: 'SomeAction' })
       opts.headers['Content-Type'].should.equal('application/x-www-form-urlencoded; charset=utf-8')
+    })
+    it('should create X-Amz-Content-Sha256 header when signing S3 requests', function() {
+      var opts = aws4.sign({ service: 's3', body: 'SomeAction' })
+      opts.headers['X-Amz-Content-Sha256'].should.equal(hash('SomeAction', 'hex'))
+    })
+    it('should leave X-Amz-Content-Sha256 header if already exists', function() {
+      var opts = aws4.sign({ service: 's3', body: 'SomeAction', headers: { 'X-Amz-Content-Sha256' : 'STREAMING-AWS4-HMAC-SHA256-PAYLOAD' } })
+      opts.headers['X-Amz-Content-Sha256'].should.equal('STREAMING-AWS4-HMAC-SHA256-PAYLOAD')
     })
   })
 

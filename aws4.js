@@ -80,7 +80,7 @@ RequestSigner.prototype.sign = function() {
   if (this.credentials.sessionToken)
     headers['X-Amz-Security-Token'] = this.credentials.sessionToken
 
-  if (this.service === 's3')
+  if (this.service === 's3' && !headers['X-Amz-Content-Sha256'])
     headers['X-Amz-Content-Sha256'] = hash(this.request.body || '', 'hex')
 
   if (headers.Authorization) delete headers.Authorization
@@ -127,7 +127,7 @@ RequestSigner.prototype.canonicalString = function() {
     pathParts[1] || '',
     this.canonicalHeaders() + '\n',
     this.signedHeaders(),
-    hash(this.request.body || '', 'hex')
+    this.request.headers['X-Amz-Content-Sha256'] || hash(this.request.body || '', 'hex')
   ].join('\n')
 }
 
