@@ -97,7 +97,7 @@ RequestSigner.prototype.authHeader = function() {
   ].join(', ')
 }
 
-RequestSigner.prototype.signature = function() {
+RequestSigner.prototype.signature = function(prevSignature, chunk) {
   var cacheKey = [this.credentials.secretAccessKey, this.date, this.region, this.service].join(),
       kDate, kRegion, kService, kCredentials = credentialsCache.get(cacheKey)
   if (!kCredentials) {
@@ -107,7 +107,27 @@ RequestSigner.prototype.signature = function() {
     kCredentials = hmac(kService, 'aws4_request')
     credentialsCache.set(cacheKey, kCredentials)
   }
-  return hmac(kCredentials, this.stringToSign(), 'hex')
+
+  var stringToSign;
+
+  if(chunk) {
+    stringToSign = this.chunkStringToSign(prevSignature, chunk)
+  } else {
+    stringToSign = this.stringToSign()
+  }
+
+  return hmac(kCredentials, stringToSign, 'hex')
+}
+
+RequestSigner.prototype.chunkStringToSign = function(prevSignature, chunk) {
+  return [
+    'AWS4-HMAC-SHA256-PAYLOAD',
+    this.datetime,
+    this.credentialString(),
+    prevSignature,
+    hash('', hex),
+    hash(chunk, 'hex')
+  ].join('\n')
 }
 
 RequestSigner.prototype.stringToSign = function() {
