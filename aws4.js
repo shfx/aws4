@@ -141,13 +141,14 @@ RequestSigner.prototype.stringToSign = function() {
 
 RequestSigner.prototype.canonicalString = function() {
   var pathParts = (this.request.path || '/').split('?', 2)
+  var headers = this.request.headers;
   return [
     this.request.method || 'GET',
     pathParts[0] || '/',
     pathParts[1] || '',
     this.canonicalHeaders() + '\n',
     this.signedHeaders(),
-    this.request.headers['X-Amz-Content-Sha256'] || hash(this.request.body || '', 'hex')
+    headers['X-Amz-Content-Sha256'] || headers['x-amz-content-sha256'] || hash(this.request.body || '', 'hex')
   ].join('\n')
 }
 
